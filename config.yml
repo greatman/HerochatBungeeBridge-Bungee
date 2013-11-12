@@ -1,0 +1,9 @@
+# BungeeChat configuration file
+# If whitelist is set to true, only the channels you specify will be linked.
+# If it is set to false, all of the channels except the ones you specify will be linked.
+whitelist: false
+
+# Here is the channel list
+channels:
+  - mychannel
+  - mysecondchannel

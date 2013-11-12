@@ -1,0 +1,5 @@
+name: BungeeChatBungee
+main: com.jumanjicraft.BungeeChatServer.BungeeChatServer
+version: 0.2
+author: KoolKrafter
+depends: ['BungeeYAML']
