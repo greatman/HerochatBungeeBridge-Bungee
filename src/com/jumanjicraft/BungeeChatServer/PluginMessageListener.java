@@ -1,8 +1,11 @@
 package com.jumanjicraft.BungeeChatServer;
 
+import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
+
 import net.md_5.bungee.api.config.ServerInfo;
 import net.md_5.bungee.api.event.PluginMessageEvent;
 import net.md_5.bungee.api.plugin.Listener;
@@ -35,7 +38,10 @@ public class PluginMessageListener
       {
         if (server.getPlayers().size() != 0)
         {
-          server.sendData("BungeeChat", event.getData());
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+        	out.write(event.getData());
+        	out.writeUTF(plugin.servers.get(addr));
+          server.sendData("BungeeChat", out.toByteArray());
         }
       }
     }
