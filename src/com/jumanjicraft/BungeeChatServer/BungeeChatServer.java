@@ -37,7 +37,11 @@ public class BungeeChatServer extends ConfigurablePlugin {
     }
 
     public boolean shouldBroadcast(String channel) {
-        return this.whitelist ^ this.channels.contains(channel);
+        if (whitelist) {
+            return this.channels.contains(channel);
+        } else {
+            return !this.channels.contains(channel);
+        }
     }
 
     public JedisPool getPool() {
