@@ -17,6 +17,7 @@ public class BungeeChatServer extends ConfigurablePlugin {
     private List<String> channels = new ArrayList<String>();
     private JedisPool pool;
     private final String CHANNEL_NAME_SEND = "BungeeChatSend", CHANNEL_NAME_RECEIVE = "BungeeChatReceive";
+    private PubSubListener psl;
 
     public void onEnable() {
         saveDefaultConfig();
@@ -24,12 +25,14 @@ public class BungeeChatServer extends ConfigurablePlugin {
         if (pool == null) {
             getLogger().severe("Unable to connect to Jedis! Plugin will be crippled in features!");
         }
+        psl = new PubSubListener();
+        getProxy().getScheduler().runAsync(this, psl);
         this.whitelist = getConfig().getBoolean("whitelist");
         this.channels = getConfig().getStringList("channels");
     }
 
     public void onDisable() {
-        getProxy().unregisterChannel("BungeeChat");
+        psl.poison();
     }
 
     public boolean shouldBroadcast(String channel) {
