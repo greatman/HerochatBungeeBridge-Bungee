@@ -10,8 +10,8 @@
 
 <repositories>
     <repository>
-        <id>craftminecraft-dev</id>
-        <url>http://repo.craftminecraft.net/content/groups/public/</url>
+        <id>greatman-repo</id>
+        <url>http://repo.greatmancode.com/content/groups/public/</url>
     </repository>
     <repository>
         <id>snapshot-repo</id>
