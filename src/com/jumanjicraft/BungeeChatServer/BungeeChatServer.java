@@ -10,6 +10,7 @@ import net.craftminecraft.bungee.bungeeyaml.pluginapi.ConfigurablePlugin;
 import net.md_5.bungee.api.ProxyServer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class BungeeChatServer extends ConfigurablePlugin {
@@ -67,16 +68,22 @@ public class BungeeChatServer extends ConfigurablePlugin {
     private class JedisPubSubHandler extends JedisPubSub {
         @Override
         public void onMessage(String channel, String message) {
+            System.out.println("IS IS SEND");
             if (channel.equals(CHANNEL_NAME_SEND)) {
+                System.out.println("SPLITTING");
                 String[] messages = message.split(":", 4);
+                System.out.println("THE ARRAY:" + Arrays.toString(messages));
                 String channelName = messages[0];
                 String rank = messages[1];
                 String nickname = messages[2];
                 String playerMessage = messages[3];
+                System.out.println("SHOULD I BROADCAST?");
                 if (shouldBroadcast(channelName)) {
+                    System.out.println("BROADCASTING...");
                     Jedis rsc = pool.getResource();
                     rsc.publish(CHANNEL_NAME_RECEIVE, channel + ":" + rank + ":" + nickname + ":" + message);
                     pool.returnResource(rsc);
+                    System.out.println("FINISH BROADCAST");
                 }
             }
         }
