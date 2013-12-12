@@ -75,17 +75,18 @@ public class BungeeChatServer extends ConfigurablePlugin {
             System.out.println("IS IS SEND");
             if (channel.equals(CHANNEL_NAME_SEND)) {
                 System.out.println("SPLITTING");
-                String[] messages = message.split(":", 4);
+                String[] messages = message.split(":", 5);
                 System.out.println("THE ARRAY:" + Arrays.toString(messages));
-                String channelName = messages[0];
-                String rank = messages[1];
-                String nickname = messages[2];
-                String playerMessage = messages[3];
+                String server = messages[0];
+                String channelName = messages[1];
+                String rank = messages[2];
+                String nickname = messages[3];
+                String playerMessage = messages[4];
                 System.out.println("SHOULD I BROADCAST?");
                 if (shouldBroadcast(channelName)) {
                     System.out.println("BROADCASTING...");
                     Jedis rsc = pool.getResource();
-                    rsc.publish(CHANNEL_NAME_RECEIVE, channelName + ":" + rank + ":" + nickname + ":" + playerMessage);
+                    rsc.publish(CHANNEL_NAME_RECEIVE, server + ":" + channelName + ":" + rank + ":" + nickname + ":" + playerMessage);
                     pool.returnResource(rsc);
                     System.out.println("FINISH BROADCAST");
                 }
