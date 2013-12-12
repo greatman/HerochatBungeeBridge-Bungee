@@ -85,7 +85,7 @@ public class BungeeChatServer extends ConfigurablePlugin {
                 if (shouldBroadcast(channelName)) {
                     System.out.println("BROADCASTING...");
                     Jedis rsc = pool.getResource();
-                    rsc.publish(CHANNEL_NAME_RECEIVE, channelName + ":" + rank + ":" + nickname + ":" + message);
+                    rsc.publish(CHANNEL_NAME_RECEIVE, channelName + ":" + rank + ":" + nickname + ":" + playerMessage);
                     pool.returnResource(rsc);
                     System.out.println("FINISH BROADCAST");
                 }
