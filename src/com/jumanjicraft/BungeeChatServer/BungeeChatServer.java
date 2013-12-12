@@ -1,31 +1,101 @@
 package com.jumanjicraft.BungeeChatServer;
 
+import com.imaginarycode.minecraft.redisbungee.RedisBungee;
+import com.imaginarycode.minecraft.redisbungee.internal.jedis.Jedis;
+import com.imaginarycode.minecraft.redisbungee.internal.jedis.JedisPool;
+import com.imaginarycode.minecraft.redisbungee.internal.jedis.JedisPoolConfig;
+import com.imaginarycode.minecraft.redisbungee.internal.jedis.JedisPubSub;
+import com.imaginarycode.minecraft.redisbungee.internal.jedis.exceptions.JedisException;
+import net.craftminecraft.bungee.bungeeyaml.pluginapi.ConfigurablePlugin;
+import net.md_5.bungee.api.ProxyServer;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import net.craftminecraft.bungee.bungeeyaml.pluginapi.ConfigurablePlugin;
+public class BungeeChatServer extends ConfigurablePlugin {
+    private boolean whitelist;
+    private List<String> channels = new ArrayList<String>();
+    private JedisPool pool;
+    private final String CHANNEL_NAME_SEND = "BungeeChatSend", CHANNEL_NAME_RECEIVE = "BungeeChatReceive";
 
-public class BungeeChatServer extends ConfigurablePlugin
-{
-  private boolean whitelist;
-  private List<String> channels = new ArrayList<String>();
+    public void onEnable() {
+        saveDefaultConfig();
+        pool = new JedisPool(new JedisPoolConfig(), getConfig().getString("jedisAddress"));
+        if (pool == null) {
+            getLogger().severe("Unable to connect to Jedis! Plugin will be crippled in features!");
+        }
+        this.whitelist = getConfig().getBoolean("whitelist");
+        this.channels = getConfig().getStringList("channels");
+    }
 
-  public void onEnable()
-  {
-    saveDefaultConfig();
-    getProxy().registerChannel("BungeeChat");
-    getProxy().getPluginManager().registerListener(this, new PluginMessageListener(this));
-    this.whitelist = getConfig().getBoolean("whitelist");
-    this.channels = getConfig().getStringList("channels");
-  }
+    public void onDisable() {
+        getProxy().unregisterChannel("BungeeChat");
+    }
 
-  public void onDisable()
-  {
-    getProxy().unregisterChannel("BungeeChat");
-  }
+    public boolean shouldBroadcast(String channel) {
+        return this.whitelist ^ this.channels.contains(channel);
+    }
 
-  public boolean shouldBroadcast(String channel)
-  {
-    return this.whitelist ^ this.channels.contains(channel);
-  }
+    public JedisPool getPool() {
+        return pool;
+    }
+
+    private class PubSubListener implements Runnable {
+
+        private Jedis rsc;
+        private JedisPubSubHandler jpsh;
+
+        @Override
+        public void run() {
+            try {
+                rsc = pool.getResource();
+                jpsh = new JedisPubSubHandler();
+                rsc.subscribe(jpsh, CHANNEL_NAME_SEND);
+            } catch (JedisException ignored) {
+            }
+        }
+
+        public void poison() {
+            jpsh.unsubscribe();
+            pool.returnResource(rsc);
+        }
+    }
+
+    private class JedisPubSubHandler extends JedisPubSub {
+        @Override
+        public void onMessage(String channel, String message) {
+            if (channel.equals(CHANNEL_NAME_SEND)) {
+                String[] messages = message.split(":", 4);
+                String channelName = messages[0];
+                String rank = messages[1];
+                String nickname = messages[2];
+                String playerMessage = messages[3];
+                if (shouldBroadcast(channelName)) {
+                    Jedis rsc = pool.getResource();
+                    rsc.publish(CHANNEL_NAME_RECEIVE, channel + ":" + rank + ":" + nickname + ":" + message);
+                    pool.returnResource(rsc);
+                }
+            }
+        }
+
+        @Override
+        public void onPMessage(String s, String s2, String s3) {
+        }
+
+        @Override
+        public void onSubscribe(String s, int i) {
+        }
+
+        @Override
+        public void onUnsubscribe(String s, int i) {
+        }
+
+        @Override
+        public void onPUnsubscribe(String s, int i) {
+        }
+
+        @Override
+        public void onPSubscribe(String s, int i) {
+        }
+    }
 }
