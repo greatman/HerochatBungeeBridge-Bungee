@@ -21,7 +21,7 @@ public class BungeeChatServer extends ConfigurablePlugin {
         saveDefaultConfig();
         try {
             client = new MongoClient(getConfig().getString("mongoAddress"));
-            queue = new MongoMessage(client.getDB("messages").getCollection("partymessages"), getConfig().getInt("serverID"));
+            queue = new MongoMessage(client.getDB("messages").getCollection("herochatmessages"), getConfig().getInt("serverID"));
             announcer = new Announcer();
             ProxyServer.getInstance().getScheduler().runAsync(this, announcer);
             this.whitelist = getConfig().getBoolean("whitelist");
