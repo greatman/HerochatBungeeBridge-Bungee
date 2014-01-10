@@ -1,39 +1,40 @@
 package com.jumanjicraft.BungeeChatServer;
 
-import com.imaginarycode.minecraft.redisbungee.RedisBungee;
-import com.imaginarycode.minecraft.redisbungee.internal.jedis.Jedis;
-import com.imaginarycode.minecraft.redisbungee.internal.jedis.JedisPool;
-import com.imaginarycode.minecraft.redisbungee.internal.jedis.JedisPoolConfig;
-import com.imaginarycode.minecraft.redisbungee.internal.jedis.JedisPubSub;
-import com.imaginarycode.minecraft.redisbungee.internal.jedis.exceptions.JedisException;
+import com.mongodb.BasicDBObject;
+import com.mongodb.MongoClient;
 import net.craftminecraft.bungee.bungeeyaml.pluginapi.ConfigurablePlugin;
 import net.md_5.bungee.api.ProxyServer;
 
+import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class BungeeChatServer extends ConfigurablePlugin {
     private boolean whitelist;
     private List<String> channels = new ArrayList<String>();
-    private JedisPool pool;
     private final String CHANNEL_NAME_SEND = "BungeeChatSend", CHANNEL_NAME_RECEIVE = "BungeeChatReceive";
-    private PubSubListener psl;
+    private MongoClient client;
+    private MongoMessage queue;
+    private Announcer announcer;
 
     public void onEnable() {
         saveDefaultConfig();
-        pool = new JedisPool(new JedisPoolConfig(), getConfig().getString("jedisAddress"));
-        if (pool == null) {
-            getLogger().severe("Unable to connect to Jedis! Plugin will be crippled in features!");
+        try {
+            client = new MongoClient(getConfig().getString("mongoAddress"));
+            queue = new MongoMessage(client.getDB("messages").getCollection("partymessages"), getConfig().getInt("serverID"));
+            announcer = new Announcer();
+            ProxyServer.getInstance().getScheduler().runAsync(this, announcer);
+            this.whitelist = getConfig().getBoolean("whitelist");
+            this.channels = getConfig().getStringList("channels");
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            getLogger().severe("Unable to connect to MongoDB! Plugin will be crippled in features!");
         }
-        psl = new PubSubListener();
-        getProxy().getScheduler().runAsync(this, psl);
-        this.whitelist = getConfig().getBoolean("whitelist");
-        this.channels = getConfig().getStringList("channels");
+
     }
 
     public void onDisable() {
-        psl.poison();
+        announcer.poison();
     }
 
     public boolean shouldBroadcast(String channel) {
@@ -44,67 +45,34 @@ public class BungeeChatServer extends ConfigurablePlugin {
         }
     }
 
-    public JedisPool getPool() {
-        return pool;
-    }
+    private class Announcer implements Runnable {
 
-    private class PubSubListener implements Runnable {
-
-        private Jedis rsc;
-        private JedisPubSubHandler jpsh;
+        private boolean end = false;
 
         @Override
         public void run() {
-            try {
-                rsc = pool.getResource();
-                jpsh = new JedisPubSubHandler();
-                rsc.subscribe(jpsh, CHANNEL_NAME_SEND);
-            } catch (JedisException ignored) {
-            }
-        }
-
-        public void poison() {
-            jpsh.unsubscribe();
-            pool.returnResource(rsc);
-        }
-    }
-
-    private class JedisPubSubHandler extends JedisPubSub {
-        @Override
-        public void onMessage(String channel, String message) {
-            if (channel.equals(CHANNEL_NAME_SEND)) {
-                String[] messages = message.split(":", 5);
-                String server = messages[0];
-                String channelName = messages[1];
-                String rank = messages[2];
-                String nickname = messages[3];
-                String playerMessage = messages[4];
-                if (shouldBroadcast(channelName)) {
-                    Jedis rsc = pool.getResource();
-                    rsc.publish(CHANNEL_NAME_RECEIVE, server + ":" + channelName + ":" + rank + ":" + nickname + ":" + playerMessage);
-                    pool.returnResource(rsc);
+            while (!end) {
+                BasicDBObject message = queue.get();
+                if (message != null) {
+                    System.out.println(message.toString());
+                    queue.ack(message);
+                    if (message.containsField(CHANNEL_NAME_SEND)) {
+                        String[] messages = ((String)message.get(CHANNEL_NAME_SEND)).split(":", 5);
+                        String server = messages[0];
+                        String channelName = messages[1];
+                        String rank = messages[2];
+                        String nickname = messages[3];
+                        String playerMessage = messages[4];
+                        if (shouldBroadcast(channelName)) {
+                            queue.send(CHANNEL_NAME_RECEIVE, server + ":" + channelName + ":" + rank + ":" + nickname + ":" + playerMessage);
+                        }
+                    }
                 }
             }
         }
 
-        @Override
-        public void onPMessage(String s, String s2, String s3) {
-        }
-
-        @Override
-        public void onSubscribe(String s, int i) {
-        }
-
-        @Override
-        public void onUnsubscribe(String s, int i) {
-        }
-
-        @Override
-        public void onPUnsubscribe(String s, int i) {
-        }
-
-        @Override
-        public void onPSubscribe(String s, int i) {
+        public void poison() {
+            end = true;
         }
     }
 }
