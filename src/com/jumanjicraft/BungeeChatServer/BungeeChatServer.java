@@ -58,12 +58,14 @@ public class BungeeChatServer extends ConfigurablePlugin {
                     if (message.containsField(CHANNEL_NAME_SEND)) {
                         String[] messages = ((String)message.get(CHANNEL_NAME_SEND)).split(":", 5);
                         String server = messages[0];
-                        String channelName = messages[1];
-                        String rank = messages[2];
-                        String nickname = messages[3];
-                        String playerMessage = messages[4];
-                        if (shouldBroadcast(channelName)) {
-                            queue.send(CHANNEL_NAME_RECEIVE, server + ":" + channelName + ":" + rank + ":" + nickname + ":" + playerMessage);
+                        if (getConfig().getStringList("handleServer").contains(server)) {
+                            String channelName = messages[1];
+                            String rank = messages[2];
+                            String nickname = messages[3];
+                            String playerMessage = messages[4];
+                            if (shouldBroadcast(channelName)) {
+                                queue.send(CHANNEL_NAME_RECEIVE, server + ":" + channelName + ":" + rank + ":" + nickname + ":" + playerMessage);
+                            }
                         }
                     }
                 }

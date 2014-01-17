@@ -4,6 +4,8 @@
 whitelist: false
 mongoAddress: 127.0.0.1
 serverID: 1
+handleServer:
+  - 1
 # Here is the channel list
 channels:
   - mychannel
