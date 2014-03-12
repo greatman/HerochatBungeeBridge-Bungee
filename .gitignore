@@ -6,3 +6,5 @@
 *.ear
 /bin
 /target
+HerochatBungeeBridge-Bungee.iml
+dependency-reduced-pom.xml

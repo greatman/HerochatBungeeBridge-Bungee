@@ -2,7 +2,7 @@
 # If whitelist is set to true, only the channels you specify will be linked.
 # If it is set to false, all of the channels except the ones you specify will be linked.
 whitelist: false
-mongoAddress: 127.0.0.1
+amqpServer: 127.0.0.1
 serverID: 1
 handleServer:
   - 1
